@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HireFlow AI HR Assistant</title>
+    <style>
+        /* Cleaned and simplified CSS for full-width, aesthetic layout */
+        :root{
+            --accent-1: #667eea;
+            --accent-2: #764ba2;
+            --muted: #6b7280;
+            --glass: rgba(255,255,255,0.9);
+            --shadow: rgba(14,30,37,0.08);
+        }
+        *{box-sizing:border-box}
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #e6eefc 0%, #f7eaf8 60%);
+            color: #223;
+            overflow-x: hidden;
+            -webkit-font-smoothing:antialiased;
+        }
+        body.dark-mode{ background: linear-gradient(135deg,#0f1724 0%, #1f2937 60%); color:#dbeafe }
+        .container{ max-width:1200px; margin:0 auto; padding:24px; }
+        header{ text-align:center; padding:36px 12px; margin-bottom:20px; }
+        header h1{ font-size:2.6rem; margin:0; color:var(--accent-2); }
+        header p{ margin-top:6px; color:var(--muted); }
+
+        /* main content flows vertically full width */
+        .main-content{ display:flex; flex-direction:column; gap:28px; width:100%; }
+
+        /* Sections are larger and feel like panels */
+        .section{
+            background: linear-gradient(180deg, var(--glass), rgba(250,251,253,0.95));
+            border-radius:14px; padding:36px; box-shadow:0 18px 40px var(--shadow);
+            transition:transform .28s,box-shadow .28s; width:100%; min-height:66vh;
+        }
+        .section:hover{ transform:translateY(-6px); box-shadow:0 28px 70px rgba(14,30,37,0.12); }
+        .section h2{ color:var(--accent-1); margin:0 0 14px 0; display:flex; align-items:center; gap:10px }
+
+        /* Constrain icon and svg sizes so they don't stretch */
+        .icon, .section h2 svg { width: 28px; height: 28px; flex: 0 0 28px; display: inline-block; }
+        .section h2 svg { margin-right: 12px; }
+        img { max-width: 100%; height: auto; display: block; }
+        svg { max-width: 28px; max-height: 28px; }
+
+        /* Forms adapt and are roomy */
+        form{ display:grid; grid-template-columns:repeat(2,1fr); gap:14px }
+        form textarea, form input[type=text], form input[type=email], form input[type=number], form input[type=date]{ grid-column:1 / -1 }
+        input, textarea, button{ padding:14px; border-radius:10px; font-size:1rem }
+        input, textarea{ background:#fbfdff; border:1px solid rgba(14,30,37,0.06) }
+        input:focus, textarea:focus{ outline:none; box-shadow:0 8px 30px rgba(102,126,234,0.12); border-color:var(--accent-1) }
+        button{ background:linear-gradient(90deg,var(--accent-1),var(--accent-2)); color:#fff; border:none; cursor:pointer }
+
+        .result{ background:linear-gradient(90deg,#f1fbf7,#ffffff); padding:18px; border-radius:10px; border-left:4px solid #2bb673 }
+
+        /* Dashboard/cards become full-width stacked panels */
+        .dashboard{ display:grid; grid-template-columns:1fr; gap:18px }
+        .card{ background:linear-gradient(180deg,#ffffff,#fbfdff); padding:28px; border-radius:12px; border:1px solid rgba(14,30,37,0.04); box-shadow:0 8px 30px rgba(14,30,37,0.06) }
+        .card h3{ margin-top:0 }
+
+        .progress-bar{ width:100%; height:18px; background:#eef2ff; border-radius:12px; overflow:hidden }
+        .progress-fill{ height:100%; background:linear-gradient(90deg,var(--accent-1),var(--accent-2)); transition:width 1.2s }
+
+        canvas{ display:block; margin:18px auto; border-radius:10px }
+
+        /* Chat floating */
+        .chat-container{ position:fixed; bottom:20px; right:20px; width:340px; height:420px; background:var(--glass); border-radius:12px; box-shadow:0 20px 50px rgba(14,30,37,0.12); display:none; flex-direction:column }
+        .chat-header{ background:linear-gradient(90deg,var(--accent-1),var(--accent-2)); color:#fff; padding:12px; border-radius:12px 12px 0 0 }
+
+        .toggle-dark{ position:fixed; top:18px; right:18px; background:var(--accent-1); color:#fff; border:none; padding:10px; border-radius:10px; cursor:pointer }
+
+        /* small tweaks for mobile */
+        @media (max-width:900px){ .section{ min-height:56vh; padding:20px } form{ grid-template-columns:1fr } header h1{ font-size:1.8rem } }
+        @media (max-width:520px){ .container{ padding:12px } .chat-container{ width:300px; height:360px } }
+
+        /* animations */
+        @keyframes fadeInBounce{ 0%{opacity:0;transform:scale(.92)} 60%{opacity:1;transform:scale(1.02)} 100%{transform:scale(1)} }
+        @keyframes zoomIn{ from{transform:scale(.96);opacity:0} to{transform:scale(1);opacity:1} }
+        /* Hero grid and mockup styles */
+        .hero-grid{ display:grid; grid-template-columns: 1fr 520px; gap:24px; align-items:center }
+        .hero-text h1{ margin:0 }
+        .hero-visual{ display:flex; align-items:center; justify-content:center }
+        .mockup-laptop{ width:520px; max-width:100%; position:relative }
+        .mockup-bezel{ background:linear-gradient(180deg,#f7f9fc,#eef4ff); border-radius:12px; padding:14px; box-shadow:0 12px 30px rgba(14,30,37,0.08); }
+        .mockup-screen{ background:#fff; border-radius:8px; padding:14px; min-height:300px; box-shadow:inset 0 1px 0 rgba(255,255,255,0.6) }
+        .topbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px }
+        .avatar{ width:36px; height:36px; border-radius:50%; background:linear-gradient(90deg,var(--accent-1),var(--accent-2)); box-shadow:0 4px 12px rgba(102,126,234,0.18) }
+        .small-pill{ background:#eef3ff; color:var(--accent-2); padding:6px 10px; border-radius:12px; font-size:0.86rem }
+        .screen-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:10px }
+        .widget{ background:linear-gradient(180deg,#fff,#fbfdff); padding:10px; border-radius:8px; border:1px solid rgba(14,30,37,0.04); box-shadow:0 6px 18px rgba(14,30,37,0.04); }
+        .profile-card .profile-name{ font-weight:700 }
+        .profile-card .profile-meta{ color:var(--muted); font-size:0.9rem }
+        .score-card{ display:flex; flex-direction:column; align-items:center; justify-content:center }
+        .score-circle{ width:88px; height:88px; border-radius:50%; background:conic-gradient(var(--accent-1), var(--accent-2)); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:1.1rem }
+        .score-label{ margin-top:8px; font-size:0.9rem; color:var(--muted) }
+        .mini-list .tags span{ display:inline-block; background:#f0f6ff; color:var(--accent-2); padding:6px 8px; border-radius:8px; margin-right:6px; margin-top:6px; font-size:0.85rem }
+        .activity .muted{ background:transparent; color:var(--muted); padding:4px 8px }
+        .mockup-stand{ height:8px; width:60%; margin:10px auto 0; background:linear-gradient(90deg,#e6eefc,#eef4ff); border-radius:6px }
+        @media (max-width:900px){ .hero-grid{ grid-template-columns:1fr; } .mockup-laptop{ width:100% } }
+    </style>
+</head>
+<body>
+    <button class="toggle-dark" onclick="toggleDarkMode()">🌙</button>
+    <!-- Top navigation bar -->
+    <nav id="topNav" style="position:sticky;top:0;z-index:999;backdrop-filter: blur(8px);">
+        <div style="max-width:1400px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:10px 20px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div style="width:42px;height:42px;border-radius:8px;background:linear-gradient(45deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;">HF</div>
+                <div>
+                    <div style="font-weight:700;color:#fff;">HireFlow AI</div>
+                    <div style="font-size:12px;color:rgba(255,255,255,0.85);">Recruitment · ATS · LLM</div>
+                </div>
+            </div>
+            <div style="display:flex;gap:18px;align-items:center;">
+                <a href="#overview" class="nav-link" style="color:#fff;text-decoration:none;">Overview</a>
+                <a href="#parse" class="nav-link" style="color:#fff;text-decoration:none;">Parse</a>
+                <a href="#score" class="nav-link" style="color:#fff;text-decoration:none;">Score</a>
+                <a href="#ats" class="nav-link" style="color:#fff;text-decoration:none;">ATS</a>
+                <a href="#schedule" class="nav-link" style="color:#fff;text-decoration:none;">Schedule</a>
+                <button onclick="toggleChat()" style="padding:8px 12px;border-radius:8px;border:none;background:rgba(255,255,255,0.12);color:#fff;cursor:pointer;">Chat</button>
+            </div>
+        </div>
+    </nav>
+    <div class="container">
+        <header>
+            <h1>HireFlow AI HR Assistant</h1>
+            <p>Powered by IBM watsonx Orchestrate - Advanced Recruitment with LLM & NLP</p>
+        </header>
+
+        <!-- left sidebar removed for a cleaner full-width layout -->
+
+        <div class="main-content">
+            <div id="overview" class="section">
+                <h2><svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2L13.09 8.26L20 9L13.09 9.74L12 16L10.91 9.74L4 9L10.91 8.26L12 2Z"/></svg> Overview</h2>
+                <div class="hero-grid">
+                    <div class="hero-text">
+                        <h1 style="margin:0;font-size:2.2rem;line-height:1.05;color:var(--accent-2);">AI HR Assistant for Recruitment & Employee Management</h1>
+                        <p style="color:var(--muted);margin-top:12px;max-width:54ch;">Powered by IBM watsonx Orchestrate — intelligent resume parsing, scoring, and ATS updates with a unified dashboard view. Quick candidate insights, interview scheduling, and automated decisions.</p>
+                        <div style="margin-top:18px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+                            <div style="background:linear-gradient(90deg,var(--accent-1),var(--accent-2));color:#fff;padding:10px 14px;border-radius:999px;font-weight:600;">Powered by IBM watsonx</div>
+                            <div style="background:rgba(102,126,234,0.08);color:var(--muted);padding:8px 12px;border-radius:8px;">Resume parsing · Scoring · ATS</div>
+                        </div>
+                    </div>
+
+                    <div class="hero-visual">
+                        <div class="mockup-laptop">
+                            <div class="mockup-bezel">
+                                <div class="mockup-screen">
+                                    <div class="topbar">
+                                        <div class="avatar" title="Profile"></div>
+                                        <div class="topbar-right">
+                                            <div class="small-pill">Dashboard</div>
+                                        </div>
+                                    </div>
+                                    <div class="screen-grid">
+                                        <div class="widget profile-card">
+                                            <div id="mock_name" class="profile-name">-</div>
+                                            <div id="mock_meta" class="profile-meta">=</div>
+                                        </div>
+                                        <div class="widget score-card">
+                                            <div id="mock_score" class="score-circle"><span id="mock_score_value">=</span></div>
+                                            <div id="mock_score_label" class="score-label">Candidate Score</div>
+                                        </div>
+                                        <div class="widget mini-list">
+                                            <div>Skills</div>
+                                            <div id="mock_tags" class="tags"><span></span><span></span><span></span></div>
+                                        </div>
+                                        <div class="widget activity">
+                                            <div class="small-pill muted">Next interview</div>
+                                            <div id="mock_next_interview" style="margin-top:10px;font-weight:600;">-</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mockup-stand"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="parse" class="section">
+                <h2><svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2M18 20H6V4H13V9H18V20Z"/></svg> Parse Resume (with NLP)</h2>
+                <form id="parseForm">
+                    <textarea id="resumeText" placeholder="Paste resume text here... (NLP will extract entities)" rows="10"></textarea>
+                    <button type="submit">Parse with NLP</button>
+                </form>
+                <div id="parseResult" class="result" style="display:none;"></div>
+            </div>
+
+            <div id="score" class="section">
+                <h2><svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1H5C3.89 1 3 1.89 3 3V21C3 22.11 3.89 23 5 23H19C20.11 23 21 22.11 21 21V9M19 9H14V4H5V21H19V9Z"/></svg> Score Candidate (with LLM)</h2>
+                <form id="scoreForm">
+                    <input type="text" id="candidateName" placeholder="Candidate Name">
+                    <input type="number" id="experienceYears" placeholder="Experience Years">
+                    <input type="text" id="skills" placeholder="Skills (comma-separated)">
+                    <input type="text" id="education" placeholder="Education">
+                    <button type="submit">Score with LLM</button>
+                </form>
+                <div id="scoreResult" class="result" style="display:none;">
+                    <div class="progress-bar"><div class="progress-fill" id="scoreBar" style="width:0%"></div></div>
+                    <p id="scoreDetails"></p>
+                </div>
+            </div>
+
+            <div id="schedule" class="section">
+                <h2><svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM15 8C16.1 8 17 8.9 17 10C17 11.1 16.1 12 15 12C13.9 12 13 11.1 13 10C13 8.9 13.9 8 15 8ZM12 14C13.1 14 14 14.9 14 16C14 17.1 13.1 18 12 18C10.9 18 10 17.1 10 16C10 14.9 10.9 14 12 14Z"/></svg> Schedule Interview</h2>
+                <form id="scheduleForm">
+                    <input type="text" id="schedName" placeholder="Candidate Name">
+                    <input type="email" id="schedEmail" placeholder="Candidate Email">
+                    <input type="date" id="preferredDate">
+                    <button type="submit">Schedule Interview</button>
+                </form>
+                <div id="scheduleResult" class="result" style="display:none;"></div>
+            </div>
+
+            <div id="ats" class="section">
+                <h2><svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M20 4H4C2.89 4 2 4.89 2 6V18C2 19.11 2.89 20 4 20H20C21.11 20 22 19.11 22 18V6C22 4.89 21.11 4 20 4M20 18H4V8H20V18Z"/></svg> Update ATS</h2>
+                <form id="atsForm">
+                    <input type="text" id="atsName" placeholder="Candidate Name">
+                    <textarea id="atsData" placeholder="Candidate Data (JSON)"></textarea>
+                    <div style="display:flex;gap:10px;">
+                        <button type="button" id="generateAtsJsonBtn">Generate ATS JSON</button>
+                        <button type="submit">Update ATS</button>
+                    </div>
+                </form>
+                <div id="atsResult" class="result" style="display:none;"></div>
+            </div>
+
+            <div id="notify" class="section">
+                <h2><svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1H5C3.89 1 3 1.89 3 3V21C3 22.11 3.89 23 5 23H19C20.11 23 21 22.11 21 21V9M19 9H14V4H5V21H19V9Z"/></svg> Notify HR (with LLM)</h2>
+                <form id="notifyForm">
+                    <input type="text" id="notifyMessage" placeholder="Message">
+                    <button type="submit">Notify HR with AI</button>
+                </form>
+                <div id="notifyResult" class="result" style="display:none;"></div>
+            </div>
+
+            <div id="dashboard" class="section dashboard">
+                <div class="card">
+                    <h3>Analytics</h3>
+                    <p>Total Candidates Processed: <span id="totalCandidates">0</span></p>
+                    <canvas id="analyticsChart" width="200" height="120"></canvas>
+                </div>
+                <div class="card">
+                    <h3>System</h3>
+                    <p>Last action: <span id="lastAction">None</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="chat-container" id="chat">
+        <div class="chat-header" onclick="toggleChat()">Chat with AI</div>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-input">
+            <input id="chatInput" placeholder="Ask a question...">
+            <button onclick="sendChat()">Send</button>
+        </div>
+    </div>
+
+    <!-- ATS JSON modal -->
+    <div id="atsModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;z-index:1000;">
+        <div style="background:#fff;width:min(900px,95%);border-radius:12px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <h3 style="margin:0;color:#333;">Generated ATS Candidate JSON</h3>
+                <div>
+                    <button id="copyAtsJson" style="margin-right:8px;padding:8px 12px;border-radius:8px;border:none;background:linear-gradient(45deg,#667eea,#764ba2);color:#fff;">Copy</button>
+                    <button id="closeAtsModal" style="padding:8px 12px;border-radius:8px;border:1px solid #ccc;background:#fff;">Close</button>
+                </div>
+            </div>
+            <textarea id="atsModalTextarea" style="width:100%;height:260px;border:1px solid #eee;padding:12px;border-radius:8px;font-family:monospace;">{
+    "name": "",
+    "email": "",
+    "phone": "",
+    "skills": [],
+    "experience_years": 0,
+    "education": "",
+    "summary": ""
+}</textarea>
+            <div style="display:flex;justify-content:flex-end;margin-top:12px;gap:10px;">
+                <button id="updateAtsFromModal" style="padding:10px 14px;border-radius:8px;border:none;background:linear-gradient(45deg,#28a745,#2ecc71);color:#fff;">Update ATS</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Decision modal -->
+    <div id="decisionModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;z-index:1000;">
+        <div style="background:#fff;width:min(800px,95%);border-radius:12px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <h3 style="margin:0;color:#333;">Send Decision Email</h3>
+                <button id="closeDecisionModal" style="padding:6px 10px;border-radius:6px;border:1px solid #ccc;background:#fff;">Close</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">
+                <input id="decisionCandidateName" placeholder="Candidate Name" />
+                <input id="decisionCandidateEmail" placeholder="Candidate Email" />
+                <input id="decisionRole" placeholder="Role / Title (optional)" style="grid-column:1/3;" />
+                <select id="decisionType" style="grid-column:1/3;padding:12px;border-radius:8px;">
+                    <option value="accept">Accept / Invite</option>
+                    <option value="reject">Reject</option>
+                </select>
+            </div>
+            <textarea id="decisionMessage" style="width:100%;height:180px;border:1px solid #eee;padding:12px;border-radius:8px;font-family:monospace;">Hello,</textarea>
+            <div style="display:flex;justify-content:flex-end;margin-top:12px;gap:10px;">
+                <button id="sendDecisionBtn" style="padding:10px 14px;border-radius:8px;border:none;background:linear-gradient(45deg,#667eea,#764ba2);color:#fff;">Send Decision Email</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Utility functions
+        function toggleDarkMode(){
+            document.body.classList.toggle('dark-mode');
+            const btn = document.querySelector('.toggle-dark');
+            btn.textContent = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
+        }
+
+        function scrollToSection(id){
+            const el = document.getElementById(id);
+            if(el) el.scrollIntoView({behavior: 'smooth'});
+        }
+
+        function setLastAction(text){
+            document.getElementById('lastAction').textContent = text;
+        }
+
+        // Simple chart drawing (no external libs)
+        function drawOverviewChart(){
+            const c = document.getElementById('overviewChart');
+            if(!c) return;
+            const ctx = c.getContext('2d');
+            ctx.clearRect(0,0,c.width,c.height);
+            // draw a simple bar chart
+            const data = [12, 19, 7, 15, 10];
+            const w = c.width / data.length;
+            ctx.fillStyle = 'rgba(102,126,234,0.9)';
+            data.forEach((v,i)=>{
+                const h = (v / 20) * (c.height - 20);
+                ctx.fillRect(i*w + 10, c.height - h - 10, w - 20, h);
+            });
+        }
+
+        function drawAnalyticsChart(){
+            const c = document.getElementById('analyticsChart');
+            if(!c) return;
+            const ctx = c.getContext('2d');
+            ctx.clearRect(0,0,c.width,c.height);
+            ctx.fillStyle = '#764ba2';
+            ctx.fillRect(10,10,80,40);
+            ctx.fillStyle = '#667eea';
+            ctx.fillRect(100,10,60,20);
+        }
+
+        // Forms and handlers
+        function showResult(id, html){
+            const el = document.getElementById(id);
+            if(!el) return;
+            el.style.display = 'block';
+            el.innerHTML = html;
+        }
+
+        // Parse Resume (call backend)
+        document.getElementById('parseForm').addEventListener('submit', async function(e){
+            e.preventDefault();
+            const text = document.getElementById('resumeText').value || '';
+            try{
+                if(!text.trim()) throw new Error('No resume text provided');
+                const res = await fetch('/api/parse', {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({resume_text: text})
+                });
+                const data = await res.json();
+                if(!data.ok) throw new Error('API parse failed');
+                const parsed = data.parsed;
+
+                // Build result with Accept / Reject controls
+                const html = `
+                    <div><strong>Name:</strong> ${parsed.name}</div>
+                    <div><strong>Emails:</strong> ${parsed.email || 'None'}</div>
+                    <div><strong>Phones:</strong> ${parsed.phone || 'None'}</div>
+                    <div><strong>Skills:</strong> ${parsed.skills.join(', ')}</div>
+                    <div style="margin-top:12px;display:flex;gap:10px;">
+                        <button id="acceptBtn" style="background:linear-gradient(45deg,#28a745,#2ecc71);">Accept</button>
+                        <button id="rejectBtn" style="background:linear-gradient(45deg,#e74c3c,#ff6b6b);">Reject</button>
+                        <button id="viewAtsBtn" style="background:rgba(0,0,0,0.06);color:#333;">View ATS JSON</button>
+                    </div>
+                `;
+
+                showResult('parseResult', html);
+                // update right-hand mockup with parsed resume
+                try{ updateMockup(parsed); }catch(e){ console.warn('mockup update failed', e); }
+                setLastAction('Parsed resume for ' + parsed.name);
+                console.info('Parse result:', parsed);
+
+                // Attach event listeners to decision buttons
+                setTimeout(()=>{
+                    const accept = document.getElementById('acceptBtn');
+                    const reject = document.getElementById('rejectBtn');
+                    const viewAts = document.getElementById('viewAtsBtn');
+                    if(accept) accept.addEventListener('click', ()=> openDecisionModal('accept', parsed));
+                    if(reject) reject.addEventListener('click', ()=> openDecisionModal('reject', parsed));
+                    if(viewAts) viewAts.addEventListener('click', ()=>{ document.getElementById('atsName').value = parsed.name || ''; document.getElementById('resumeText').value = text; generateAtsJson(); });
+                }, 50);
+                
+
+            }catch(err){
+                console.error(err);
+                showResult('parseResult', '<strong>Error:</strong> ' + err.message);
+            }
+        });
+
+        // Score Candidate (backend)
+        document.getElementById('scoreForm').addEventListener('submit', async function(e){
+            e.preventDefault();
+            const name = document.getElementById('candidateName').value || 'Candidate';
+            const years = Number(document.getElementById('experienceYears').value) || 0;
+            const skills = (document.getElementById('skills').value || '').split(',').map(s=>s.trim()).filter(Boolean);
+            const education = (document.getElementById('education').value || '');
+            try{
+                const payload = {
+                    parsed_resume: { name, skills, experience_years: years, education },
+                    job_requirements: { skills: skills, min_experience: 0 }
+                };
+                const res = await fetch('/api/score', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+                const data = await res.json();
+                if(!data.ok) throw new Error('API score failed');
+                const score = data.score;
+                const bar = document.getElementById('scoreBar');
+                const details = document.getElementById('scoreDetails');
+                document.getElementById('scoreResult').style.display = 'block';
+                bar.style.width = '0%';
+                details.textContent = 'Calculating...';
+                setTimeout(()=>{
+                    const pct = (score && (score.score || score)) || 0;
+                    bar.style.width = pct + '%';
+                    details.textContent = `${name} scored ${pct}% — ${skills.length} skills, ${years} years experience`;
+                    setLastAction('Scored ' + name + ' ('+pct+'%)');
+                    console.info('Score computed', score);
+                    try{ 
+                        // update mockup with the candidate info used for scoring
+                        updateMockup(payload.parsed_resume || { name, skills, experience_years: years, education });
+                    }catch(e){ console.warn('updateMockup during score failed', e); }
+                    try{ updateScoreDisplay(pct); }catch(e){ console.warn('updateScoreDisplay failed', e); }
+                }, 400);
+            }catch(err){
+                console.error(err);
+                showResult('scoreResult', '<strong>Error:</strong> '+err.message);
+            }
+        });
+
+        // Schedule Interview (backend)
+        document.getElementById('scheduleForm').addEventListener('submit', async function(e){
+            e.preventDefault();
+            const name = document.getElementById('schedName').value || 'Candidate';
+            const email = document.getElementById('schedEmail').value || '';
+            const date = document.getElementById('preferredDate').value || '';
+            try{
+                if(!email.includes('@')) throw new Error('Invalid email');
+                if(!date) throw new Error('Please choose a preferred date');
+                const res = await fetch('/api/schedule', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({candidate_name:name, candidate_email: email, preferred_date: date})});
+                const data = await res.json();
+                if(!data.ok) throw new Error('API schedule failed');
+                const info = data.schedule;
+                const html = `Interview scheduled for <strong>${name}</strong> on <strong>${info.confirmed_slot}</strong>. Link: <a href="${info.calendar_event_link}" target="_blank">Open</a>`;
+                showResult('scheduleResult', html);
+                setLastAction('Scheduled interview for ' + name);
+                try{ const mi = document.getElementById('mock_next_interview'); if(mi) mi.textContent = info.confirmed_slot || (date || 'Scheduled'); }catch(e){console.warn('mock update failed', e);} 
+            }catch(err){
+                console.error(err);
+                showResult('scheduleResult', '<strong>Error:</strong> '+err.message);
+            }
+        });
+
+        // ATS Update (backend)
+        document.getElementById('atsForm').addEventListener('submit', async function(e){
+            e.preventDefault();
+            const name = document.getElementById('atsName').value || 'Candidate';
+            const data = document.getElementById('atsData').value || '';
+            try{
+                let json = null;
+                try{ json = JSON.parse(data); } catch(e){ throw new Error('ATS data must be valid JSON'); }
+                const res = await fetch('/api/ats', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({candidate_data: json})});
+                const body = await res.json();
+                if(!body.ok) throw new Error('API ATS failed');
+                const html = `ATS updated for <strong>${name}</strong>. Status: ${body.ats.status}`;
+                showResult('atsResult', html);
+                setLastAction('Updated ATS for ' + name);
+            }catch(err){
+                console.error(err);
+                showResult('atsResult', '<strong>Error:</strong> '+err.message);
+            }
+        });
+
+        // Notify HR (backend)
+        document.getElementById('notifyForm').addEventListener('submit', async function(e){
+            e.preventDefault();
+            const msg = document.getElementById('notifyMessage').value || '';
+            try{
+                if(!msg.trim()) throw new Error('Message cannot be empty');
+                showResult('notifyResult', 'Sending message to HR...');
+                const res = await fetch('/api/notify', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({message: msg})});
+                const body = await res.json();
+                if(!body.ok) throw new Error('API notify failed');
+                showResult('notifyResult', '<strong>Sent:</strong> ' + msg + ' (status: ' + body.notify.status + ')');
+                setLastAction('Notified HR');
+                console.info('Notify HR:', msg);
+            }catch(err){
+                console.error(err);
+                showResult('notifyResult', '<strong>Error:</strong> '+err.message);
+            }
+        });
+
+        // Chat
+        function toggleChat(){
+            const c = document.getElementById('chat');
+            c.style.display = c.style.display === 'flex' ? 'none' : 'flex';
+        }
+        async function sendChat(){
+            const input = document.getElementById('chatInput');
+            const msg = input.value.trim();
+            if(!msg) return;
+            const box = document.getElementById('chatMessages');
+            const el = document.createElement('div'); el.textContent = 'You: ' + msg; box.appendChild(el);
+            input.value = '';
+            // call backend chat
+            try{
+                const parsedText = document.getElementById('resumeText') ? document.getElementById('resumeText').value : '';
+                const context = {};
+                if(parsedText && parsedText.trim()){
+                    // include parsed resume to context by calling parse endpoint (best-effort)
+                    const p = await fetch('/api/parse',{method:'POST',headers:{'Content-Type':'application/json'},body: JSON.stringify({resume_text: parsedText})});
+                    const pd = await p.json();
+                    if(pd.ok) context.parsed_resume = pd.parsed;
+                }
+                const res = await fetch('/api/chat',{method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({message: msg, context})});
+                const body = await res.json();
+                if(!body.ok) throw new Error(body.error || 'chat API failed');
+                const reply = body.reply && body.reply.response ? body.reply.response : (body.reply || 'No reply');
+                const r = document.createElement('div'); r.textContent = 'AI: ' + reply; box.appendChild(r); box.scrollTop = box.scrollHeight;
+            }catch(err){
+                console.error(err);
+                const r = document.createElement('div'); r.textContent = 'AI: Error: ' + err.message; box.appendChild(r); box.scrollTop = box.scrollHeight;
+            }
+        }
+
+        // Update the right-hand mockup with parsed data
+        function updateMockup(parsed){
+            try{
+                if(!parsed) return;
+                const nameEl = document.getElementById('mock_name');
+                const metaEl = document.getElementById('mock_meta');
+                const tagsEl = document.getElementById('mock_tags');
+                if(nameEl) nameEl.textContent = parsed.name || parsed.full_name || 'Candidate';
+                const edu = parsed.education || parsed.degree || '';
+                const title = parsed.title || '';
+                const yrs = parsed.experience_years ? (parsed.experience_years + 'y exp') : '';
+                const metaParts = [];
+                if(title) metaParts.push(title);
+                if(edu) metaParts.push(edu);
+                if(yrs) metaParts.push(yrs);
+                if(metaEl) metaEl.textContent = metaParts.join(' • ') || '—';
+                if(tagsEl){
+                    tagsEl.innerHTML = '';
+                    const skills = Array.isArray(parsed.skills) ? parsed.skills : (parsed.skills ? parsed.skills.split(',').map(s=>s.trim()) : []);
+                    skills.slice(0,6).forEach(s=>{ const sp = document.createElement('span'); sp.textContent = s; tagsEl.appendChild(sp); });
+                }
+            }catch(e){ console.error('updateMockup error', e); }
+        }
+
+        function updateScoreDisplay(value){
+            const v = Math.max(0, Math.min(100, Math.round(Number(value)||0)));
+            const el = document.getElementById('mock_score');
+            const val = document.getElementById('mock_score_value');
+            if(val) val.textContent = v;
+            if(el){
+                // visual progress via conic gradient
+                el.style.background = `conic-gradient(var(--accent-1) 0deg, var(--accent-1) ${v*3.6}deg, #eef2ff ${v*3.6}deg)`;
+            }
+        }
+
+        // Initialize UI
+        window.addEventListener('load', ()=>{
+            drawOverviewChart();
+            drawAnalyticsChart();
+            setLastAction('Ready');
+            // Update totalCandidates example
+            document.getElementById('totalCandidates').textContent = 42;
+                // ATS modal handlers
+                document.getElementById('generateAtsJsonBtn').addEventListener('click', generateAtsJson);
+                document.getElementById('closeAtsModal').addEventListener('click', closeAtsModal);
+                document.getElementById('copyAtsJson').addEventListener('click', copyAtsJson);
+                document.getElementById('updateAtsFromModal').addEventListener('click', updateAtsFromModal);
+                // Decision modal handlers
+                document.getElementById('closeDecisionModal').addEventListener('click', closeDecisionModal);
+                document.getElementById('sendDecisionBtn').addEventListener('click', sendDecisionFromModal);
+        });
+
+            // Build ATS JSON from parsed resume or form inputs
+            function generateAtsJson(){
+                const resumeText = document.getElementById('resumeText') ? document.getElementById('resumeText').value.trim() : '';
+                const nameInput = document.getElementById('atsName').value.trim();
+                let payload = { name: '', email: '', phone: '', skills: [], experience_years: 0, education: '', summary: '' };
+                if(resumeText){
+                    // try to parse via backend quickly
+                    fetch('/api/parse', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({resume_text: resumeText})})
+                    .then(r=>r.json())
+                    .then(data=>{
+                        if(data.ok){
+                            const p = data.parsed;
+                            payload.name = p.name || nameInput || '';
+                            payload.email = p.email || '';
+                            payload.phone = p.phone || '';
+                            payload.skills = p.skills || [];
+                            payload.experience_years = p.experience_years || 0;
+                            payload.education = p.education || '';
+                            payload.summary = p.summary || '';
+                            openAtsModalWithPayload(payload);
+                        } else {
+                            openAtsModalWithPayload(payload);
+                        }
+                    }).catch(err=>{ console.error(err); openAtsModalWithPayload(payload); });
+                } else {
+                    payload.name = nameInput || '';
+                    openAtsModalWithPayload(payload);
+                }
+            }
+
+            function openAtsModalWithPayload(obj){
+                const ta = document.getElementById('atsModalTextarea');
+                ta.value = JSON.stringify(obj, null, 4);
+                document.getElementById('atsModal').style.display = 'flex';
+            }
+
+            function closeAtsModal(){ document.getElementById('atsModal').style.display = 'none'; }
+
+            function copyAtsJson(){ const ta = document.getElementById('atsModalTextarea'); ta.select(); document.execCommand('copy'); }
+
+            async function updateAtsFromModal(){
+                const ta = document.getElementById('atsModalTextarea');
+                let json = null;
+                try{ json = JSON.parse(ta.value); } catch(e){ alert('Invalid JSON'); return; }
+                try{
+                    const res = await fetch('/api/ats', {method:'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({candidate_data: json})});
+                    const body = await res.json();
+                    if(!body.ok) throw new Error(body.error || 'ATS update failed');
+                    document.getElementById('atsResult').style.display = 'block';
+                    document.getElementById('atsResult').innerHTML = `ATS updated for <strong>${json.name||'Candidate'}</strong>. Status: ${body.ats.status}`;
+                    closeAtsModal();
+                }catch(err){ alert('ATS update failed: ' + err.message); }
+            }
+
+            // Decision modal functions
+            function openDecisionModal(decision, parsed){
+                const name = parsed.name || '';
+                const email = parsed.email || '';
+                document.getElementById('decisionCandidateName').value = name;
+                document.getElementById('decisionCandidateEmail').value = email;
+                document.getElementById('decisionType').value = decision;
+                // pre-fill a polite template
+                if(decision === 'accept'){
+                    document.getElementById('decisionMessage').value = `Dear ${name},\n\nThank you for applying. We'd like to invite you to an interview. Please reply with your availability.`;
+                } else {
+                    document.getElementById('decisionMessage').value = `Dear ${name},\n\nThank you for your interest. After careful consideration we will not be moving forward with your application at this time.`;
+                }
+                document.getElementById('decisionModal').style.display = 'flex';
+            }
+
+            function closeDecisionModal(){ document.getElementById('decisionModal').style.display = 'none'; }
+
+            async function sendDecisionFromModal(){
+                const name = document.getElementById('decisionCandidateName').value.trim();
+                const email = document.getElementById('decisionCandidateEmail').value.trim();
+                const type = document.getElementById('decisionType').value;
+                const role = document.getElementById('decisionRole').value.trim();
+                const message = document.getElementById('decisionMessage').value.trim();
+                if(!email || !email.includes('@')){ alert('Please provide a valid candidate email'); return; }
+                try{
+                    const res = await fetch('/api/decision', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({candidate_email: email, candidate_name: name, decision: type, role: role, message: message})});
+                    const body = await res.json();
+                    if(!body.ok) throw new Error(body.error || 'Decision API failed');
+                    showResult('parseResult', `<strong>Decision email sent to ${name || email}</strong>.`);
+                    setLastAction((type==='accept'?'Accepted ':'Rejected ')+ (name||email));
+                    closeDecisionModal();
+                }catch(err){
+                    alert('Failed to send decision: ' + err.message);
+                }
+            }
+    </script>
+  </body>
+  </html>
